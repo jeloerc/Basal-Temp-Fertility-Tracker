@@ -21,7 +21,8 @@ class BasalTempTracker:
 
 
     def fertile_day(self, temp):
-        return temp > 97.5 
+        fertile_temp=98.6
+        return temp >= fertile_temp
 
     def analyze(self):
         temp_dates = sorted(self.temps.keys())
@@ -64,10 +65,11 @@ class BasalTempTracker:
         data.to_csv("temperature_data.csv", index=False)
     
     def plot_data(self):
+        fertile_temp=98.6
         temp_dates=sorted(self.temps.keys())
         temp_values=[self.temps[date] for date in temp_dates]
         plt.plot(temp_dates, temp_values, marker='o')
-        plt.axhline(y=97.5, color='r', linestyle='--', label='Fertile Threshold')
+        plt.axhline(y=fertile_temp, color='r', linestyle='--', label='Fertile Threshold')
         plt.xlabel('Day in Menstrual Cycle')
         plt.ylabel('Basal Body Temp (°F)')
         plt.title('Basal Body Temperature Tracking')
