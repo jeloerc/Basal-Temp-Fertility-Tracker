@@ -1,6 +1,6 @@
 
 import pandas as pd
-
+import matplotlib.pyplot as plt
 
 class BasalTempTracker:
     def __init__(self):
@@ -19,6 +19,7 @@ class BasalTempTracker:
     def get_average(self, temp_list):
         return sum(temp_list)/ len(temp_list)
 
+
     def fertile_day(self, temp):
         return temp > 97.5 
 
@@ -31,19 +32,20 @@ class BasalTempTracker:
         print("Analysis:")
         print(f"Average Basal Body Temp: {cycle_average:.2f}°F")
         print("Fertile Days:", fertile_days)
+       
         print("Infertile Days:", [date for date in temp_dates if date not in fertile_days])
-
     def reset_day_counter(self):
         self.day_counter = 1
-        self.temp_list = []
-        self.save_data()
+        self.temp_list=[]
         print("Day counter reset.")
 
     def display_temp_list(self):
         if self.temp_list:
             print("Temperature History:")
+            day_offset = (self.day_counter - 1) % 28
             for i, temp in enumerate(self.temp_list, start=1):
-                print(f"Day {i}: {temp:.2f}°F")
+                day_number = (i + day_offset - 1) % 28 + 1
+                print(f"Day {day_number}: {temp:.2f}°F")
         else:
             print("No temperature history available.")
 
@@ -60,6 +62,17 @@ class BasalTempTracker:
     def save_data(self):
         data = pd.DataFrame({"Day": list(self.temps.keys()), "Temperature": list(self.temps.values())})
         data.to_csv("temperature_data.csv", index=False)
+    
+    def plot_data(self):
+        temp_dates=sorted(self.temps.keys())
+        temp_values=[self.temps[date] for date in temp_dates]
+        plt.plot(temp_dates, temp_values, marker='o')
+        plt.axhline(y=97.5, color='r', linestyle='--', label='Fertile Threshold')
+        plt.xlabel('Day in Menstrual Cycle')
+        plt.ylabel('Basal Body Temp (°F)')
+        plt.title('Basal Body Temperature Tracking')
+        plt.legend()
+        plt.show()
 
 
 tracker = BasalTempTracker()
@@ -83,6 +96,7 @@ while True:
                          'Started menstrual cycle',
                          'Analyze data',
                          'Display temperature history',
+                         'Display data plot',
                          'Exit'])
 
     if choice == 1:
@@ -95,6 +109,8 @@ while True:
     elif choice == 4:
         tracker.display_temp_list()
     elif choice == 5:
+        tracker.plot_data()
+    elif choice==6:    
         print("Exit")
         break
     else:
