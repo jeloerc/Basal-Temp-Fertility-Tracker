@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Settings - Basal Temperature Tracking</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="py-4 text-center">
+            <h1 class="display-4">Basal Temperature Tracker</h1>
+            <p class="lead">Monitor your menstrual cycle and fertility</p>
+        </header>
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 rounded">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('index') }}">
+                    <i class="fas fa-thermometer-half"></i> BBT Tracker
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}">
+                                <i class="fas fa-home"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('history') }}">
+                                <i class="fas fa-history"></i> History
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('cycles') }}">
+                                <i class="fas fa-sync-alt"></i> Cycles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('settings') }}" aria-current="page">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h5 mb-0">Application Settings</h2>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('save_settings') }}" method="post">
+                            <div class="mb-3">
+                                <label for="cycle_length" class="form-label">Default Cycle Length (days)</label>
+                                <input type="number" class="form-control" id="cycle_length" name="cycle_length" value="{{ settings.cycle_length }}" required>
+                                <div class="form-text">Used for predictions if tracking less than one full cycle.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="temperature_unit" class="form-label">Temperature Unit</label>
+                                <select class="form-select" id="temperature_unit" name="temperature_unit">
+                                    <option value="F" {% if settings.temperature_unit == 'F' %}selected{% endif %}>Fahrenheit (°F)</option>
+                                    <option value="C" {% if settings.temperature_unit == 'C' %}selected{% endif %}>Celsius (°C)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="shortest_cycle" class="form-label">Shortest Cycle Length (days)</label>
+                                <input type="number" class="form-control" id="shortest_cycle" name="shortest_cycle" value="{{ settings.shortest_cycle if settings.shortest_cycle else 28 }}">
+                                <div class="form-text">Enter the length of your shortest cycle in the last 6-12 months. Used for calculating your fertile window.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="longest_cycle" class="form-label">Longest Cycle Length (days)</label>
+                                <input type="number" class="form-control" id="longest_cycle" name="longest_cycle" value="{{ settings.longest_cycle if settings.longest_cycle else 32 }}">
+                                <div class="form-text">Enter the length of your longest cycle in the last 6-12 months. Used for calculating your fertile window.</div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h2 class="h5 mb-0">Fertility Window Calculator</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i> Your fertile window is approximately 6 days each cycle (5 days before ovulation + the day of ovulation).
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h3 class="h6 mb-0">Your Estimated Fertile Window</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Based on your cycle lengths:</strong></p>
+                                        <div id="fertile-window-display">
+                                            <p>First potentially fertile day: Day <span id="first-fertile-day">{{ settings.shortest_cycle|int - 18 if settings.shortest_cycle else 10 }}</span> of your cycle</p>
+                                            <p>Last potentially fertile day: Day <span id="last-fertile-day">{{ settings.longest_cycle|int - 11 if settings.longest_cycle else 21 }}</span> of your cycle</p>
+                                        </div>
+                                        <div class="form-text">These estimates are calculated using the formula: First fertile day = shortest cycle - 18, Last fertile day = longest cycle - 11.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h3 class="h6 mb-0">3-Day Temperature Rule</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Ovulation has likely already occurred when you observe <strong>3 consecutive days of elevated temperature</strong>.</p>
+                                        <p>This temperature shift is typically 0.2-0.5°C (0.4-0.9°F) higher than your pre-ovulatory temperatures.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <h3 class="h5 mt-4">Synpto-Thermal Method for Better Accuracy</h3>
+                        <p>For more accurate fertility tracking, combine temperature tracking with these observations:</p>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h4 class="h6 card-title"><i class="fas fa-water me-2 text-info"></i> Cervical Mucus</h4>
+                                        <p class="card-text">Becomes more elastic, transparent, and slippery during fertile days. Track the consistency of your cervical mucus daily.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h4 class="h6 card-title"><i class="fas fa-circle me-2 text-info"></i> Cervical Position</h4>
+                                        <p class="card-text">Rises, softens, and opens during fertile days. You can check this change with clean fingers.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h4 class="h6 card-title"><i class="fas fa-vial me-2 text-info"></i> Ovulation Tests</h4>
+                                        <p class="card-text">Detect the LH hormone surge that occurs 24-36 hours before ovulation. Use these to confirm your fertile window.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Remember: Basal temperature primarily confirms ovulation <strong>after</strong> it occurs. Use multiple indicators for prospective fertility planning.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h2 class="h5 mb-0">Key Patterns in Basal Temperature Charts</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">When analyzing your basal temperature charts, look for these important patterns:</p>
+                        
+                        <div class="accordion" id="tempPatternsAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingOne">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                        <i class="fas fa-chart-line me-2"></i> Biphasic Pattern
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        <strong>The most important pattern to identify</strong> - A clear division of your cycle into follicular phase (lower temperatures) and luteal phase (higher temperatures), with a temperature rise of approximately 0.2-0.5°C or 0.4-0.9°F after ovulation. This confirms ovulation has occurred.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingTwo">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                        <i class="fas fa-arrow-down me-2"></i> Pre-Ovulatory Drop
+                                    </button>
+                                </h2>
+                                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        Many women experience a slight temperature drop 1-2 days before ovulation, which can be a helpful predictor of fertility. This drop is caused by the estrogen peak right before ovulation.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingThree">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                        <i class="fas fa-arrow-up me-2"></i> Sustained Post-Ovulation Rise
+                                    </button>
+                                </h2>
+                                <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        After ovulation, your temperature should rise and remain elevated for at least 3 consecutive days. This sustained rise confirms that ovulation has occurred and is caused by increased progesterone levels.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingFour">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                        <i class="fas fa-level-down-alt me-2"></i> Pre-Menstrual Drop
+                                    </button>
+                                </h2>
+                                <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        A temperature drop 1-2 days before your period begins indicates the decline in progesterone levels. If your temperature stays elevated beyond your expected period, it could be an early sign of pregnancy.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingFive">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                                        <i class="fas fa-wave-square me-2"></i> Sawtooth Pattern
+                                    </button>
+                                </h2>
+                                <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        Temperatures that fluctuate significantly from day to day (sawtooth pattern) might indicate disrupted sleep, stress, or inconsistent measurement times. Try to measure your temperature at the same time each morning before getting out of bed.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingSix">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
+                                        <i class="fas fa-long-arrow-alt-right me-2"></i> Extended High Plateau
+                                    </button>
+                                </h2>
+                                <div id="collapseSix" class="accordion-collapse collapse" aria-labelledby="headingSix" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        If your temperatures remain elevated beyond 18 days after ovulation (when they would normally drop for menstruation), this could be an indication of pregnancy. The continued high temperatures reflect the maintenance of progesterone production.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingSeven">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
+                                        <i class="fas fa-minus me-2"></i> Monophasic Pattern
+                                    </button>
+                                </h2>
+                                <div id="collapseSeven" class="accordion-collapse collapse" aria-labelledby="headingSeven" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        A chart without a clear temperature shift between phases may suggest an anovulatory cycle (a cycle where ovulation did not occur). Occasional anovulatory cycles can be normal, but frequent occurrences might warrant discussion with a healthcare provider.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingEight">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="false" aria-controls="collapseEight">
+                                        <i class="fas fa-compress-alt me-2"></i> Short Luteal Phase
+                                    </button>
+                                </h2>
+                                <div id="collapseEight" class="accordion-collapse collapse" aria-labelledby="headingEight" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        Less than 10 days between the temperature rise and the start of your period may indicate a short luteal phase. This could potentially make implantation more difficult, as the embryo might not have enough time to implant before menstruation begins.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingNine">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNine" aria-expanded="false" aria-controls="collapseNine">
+                                        <i class="fas fa-angle-double-up me-2"></i> Slow Rise
+                                    </button>
+                                </h2>
+                                <div id="collapseNine" class="accordion-collapse collapse" aria-labelledby="headingNine" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        A gradual increase in temperature over several days rather than a clear, sudden jump. This is a normal variation for some women and still indicates that ovulation has occurred, though pinpointing the exact day may be more challenging.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingTen">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTen" aria-expanded="false" aria-controls="collapseTen">
+                                        <i class="fas fa-exclamation-triangle me-2"></i> Unusually High Temperatures
+                                    </button>
+                                </h2>
+                                <div id="collapseTen" class="accordion-collapse collapse" aria-labelledby="headingTen" data-bs-parent="#tempPatternsAccordion">
+                                    <div class="accordion-body">
+                                        Temperatures significantly above your normal range may indicate an infection or illness unrelated to your cycle. It's best to note when you're feeling unwell, as these readings might not accurately reflect your fertility status.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i> These patterns help identify ovulation timing, confirm if ovulation occurred, and detect possible irregularities in your menstrual cycle. The more cycles you track, the more patterns you'll be able to recognize in your own body's unique temperature fluctuations.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4 mb-3">
+            <div class="col-md-12">
+                <h3 class="h5">Fertility Threshold Calculator</h3>
+                <p>Use this tool to calculate your personal fertility temperature threshold based on your historical data.</p>
+                
+                <div class="card card-body mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="fertileThreshold" class="form-label">Current Fertility Threshold</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" class="form-control" id="fertileThreshold" name="fertileThreshold" value="{{ settings.fertile_threshold|default('98.0', true) }}">
+                                    <span class="input-group-text">°F</span>
+                                </div>
+                            </div>
+                            <div class="form-text mb-3">This is your estimated fertility temperature threshold. Any temperature at or above this value may indicate post-ovulation.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <form action="{{ url_for('calculate_fertile_threshold') }}" method="post" class="mt-2">
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-outline-primary">Auto-Calculate Threshold</button>
+                                </div>
+                                <div class="form-text text-center mt-2">Use your historical temperature data to determine your personal threshold.</div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="py-3 text-center text-muted">
+            <div class="container">
+                <p>© 2025 Basal Temperature Tracker</p>
+                <p class="small">This application is for informational purposes at JJhome</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- iOS Specific Adjustments -->
+    <script>
+        // Detect iOS device
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        }
+        
+        if (isIOS()) {
+            // Add iOS class to body for specific styling
+            document.body.classList.add('ios-device');
+            
+            // Fix font size to prevent zoom on input focus
+            const inputElements = document.querySelectorAll('input, select');
+            inputElements.forEach(input => {
+                input.style.fontSize = '16px';
+            });
+            
+            // Improve button touch targets for iOS
+            const buttons = document.querySelectorAll('button, .btn');
+            buttons.forEach(button => {
+                button.style.minHeight = '44px';
+                button.style.padding = '10px 15px';
+            });
+        }
+    </script>
+
+    <script>
+    // Calculate fertile window based on input values
+    document.addEventListener('DOMContentLoaded', function() {
+        const shortestCycleInput = document.getElementById('shortest_cycle');
+        const longestCycleInput = document.getElementById('longest_cycle');
+        const firstFertileDaySpan = document.getElementById('first-fertile-day');
+        const lastFertileDaySpan = document.getElementById('last-fertile-day');
+        
+        // Function to update fertile window display
+        function updateFertileWindow() {
+            const shortestCycle = parseInt(shortestCycleInput.value) || 28;
+            const longestCycle = parseInt(longestCycleInput.value) || 32;
+            
+            const firstFertileDay = shortestCycle - 18;
+            const lastFertileDay = longestCycle - 11;
+            
+            firstFertileDaySpan.textContent = firstFertileDay;
+            lastFertileDaySpan.textContent = lastFertileDay;
+        }
+        
+        // Update on input changes
+        if (shortestCycleInput && longestCycleInput) {
+            shortestCycleInput.addEventListener('input', updateFertileWindow);
+            longestCycleInput.addEventListener('input', updateFertileWindow);
+            
+            // Initial calculation
+            updateFertileWindow();
+        }
+    });
+    </script>
+
+    <!-- Modal para explicar el umbral de temperatura fértil -->
+    <div class="modal fade" id="fertileThresholdModal" tabindex="-1" aria-labelledby="fertileThresholdModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="fertileThresholdModalLabel">Understanding Fertile Temperature Threshold</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>There isn't a single universal fertile temperature threshold that applies to all women. Instead, fertility awareness methods that use basal body temperature (BBT) focus on identifying the pattern shift between phases of your cycle.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">Pre-ovulation (Follicular Phase)</div>
+                                <div class="card-body">
+                                    <ul>
+                                        <li>Typically lower temperatures in the range of 97.0°F - 97.7°F (36.1°C - 36.5°C)</li>
+                                        <li>This varies by individual</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">Post-ovulation (Luteal Phase)</div>
+                                <div class="card-body">
+                                    <ul>
+                                        <li>Temperatures rise approximately 0.4°F - 1.0°F (0.2°C - 0.5°C) above your baseline</li>
+                                        <li>Typically in the range of 97.8°F - 98.6°F (36.6°C - 37.0°C)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mt-3">How Auto-Calculate Works</h5>
+                    <p>Our auto-calculate feature:</p>
+                    <ol>
+                        <li>Analyzes your historical temperature data across multiple cycles</li>
+                        <li>Identifies your typical follicular phase (pre-ovulation) temperatures</li>
+                        <li>Calculates your personal fertile threshold by adding 0.4°F (0.2°C) to your average follicular phase temperature</li>
+                        <li>This threshold is typically where your temperature shift occurs, indicating ovulation has happened</li>
+                    </ol>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-lightbulb me-2"></i> For best results, have at least 1-2 complete cycles recorded with daily temperature readings.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

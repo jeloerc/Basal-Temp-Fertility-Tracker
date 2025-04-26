@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basal Temperature Tracker - User Guide</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        .guide-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .section h2 {
+            color: #7c4dff;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .steps {
+            list-style-type: decimal;
+            padding-left: 25px;
+        }
+        .steps li {
+            margin-bottom: 10px;
+        }
+        .highlight {
+            background-color: #ffe0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .img-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .note {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        .btn-back {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #7c4dff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .btn-back:hover {
+            background-color: #6a3dd0;
+        }
+    </style>
+</head>
+<body>
+    <div class="guide-container">
+        <h1 class="text-center">Basal Temperature Tracker Mobile App Guide</h1>
+        
+        <div class="section">
+            <h2>Getting Started</h2>
+            <p>Welcome to the Basal Temperature Tracker mobile application guide. This app helps you track and visualize your basal body temperature throughout your menstrual cycle.</p>
+            
+            <div class="steps">
+                <li>Make sure the backend server is running at <span class="highlight">http://192.168.50.164:5000</span></li>
+                <li>Download the Expo Go app on your mobile device from the App Store or Google Play</li>
+                <li>Navigate to the react-native-app directory on the server and run <code>./start.sh</code></li>
+                <li>Scan the QR code that appears with your Expo Go app</li>
+                <li>The app should connect to your data automatically</li>
+            </div>
+            
+            <div class="note">
+                <strong>Note:</strong> Your mobile device must be on the same network as the server for the connection to work properly.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Understanding the Interface</h2>
+            
+            <h3>Main Screen</h3>
+            <p>The main screen displays your temperature chart and cycle information:</p>
+            <ul>
+                <li><strong>Top Bar:</strong> Shows cycle selector</li>
+                <li><strong>Cycle Info Card:</strong> Displays start/end dates, length, average temperature</li>
+                <li><strong>Temperature Chart:</strong> Visual representation of your basal temperatures</li>
+                <li><strong>Stats Section:</strong> Shows cycle analysis data</li>
+            </ul>
+            
+            <h3>Temperature Chart</h3>
+            <p>The chart uses color coding to help you understand your cycle:</p>
+            <ul>
+                <li><strong>Purple Line:</strong> Follicular phase (pre-ovulation)</li>
+                <li><strong>Pink Line:</strong> Luteal phase (post-ovulation)</li>
+                <li><strong>Red Markers:</strong> Period days</li>
+                <li><strong>Green Line:</strong> Fertile threshold</li>
+                <li><strong>Lime Green Area:</strong> Potentially fertile zone</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>Features</h2>
+            
+            <h3>Cycle Navigation</h3>
+            <p>Tap on cycle buttons at the top to switch between different cycles.</p>
+            
+            <h3>Temperature Data</h3>
+            <p>Tap on any point in the chart to see detailed information about that day.</p>
+            
+            <h3>Temperature Unit</h3>
+            <p>Use the button at the bottom of the screen to switch between Fahrenheit and Celsius.</p>
+            
+            <h3>Fertility Analysis</h3>
+            <p>The app automatically analyzes your temperature patterns to identify:</p>
+            <ul>
+                <li>Temperature shifts indicating potential ovulation</li>
+                <li>Follicular and luteal phases</li>
+                <li>Cycle statistics to help identify patterns</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>Troubleshooting</h2>
+            
+            <h3>Connection Issues</h3>
+            <ul>
+                <li>Verify that the Flask backend is running</li>
+                <li>Make sure your device is on the same network as the server</li>
+                <li>Check that the server IP is correctly set in App.js</li>
+                <li>Try restarting the Expo server and reload the app</li>
+            </ul>
+            
+            <h3>Data Not Showing</h3>
+            <ul>
+                <li>Verify that you have data entered in the web application</li>
+                <li>Check the API endpoint is working by visiting <span class="highlight">http://192.168.50.164:5000/api/cycle_analytics</span> in a browser</li>
+                <li>Use the Retry button in the app if loading fails</li>
+            </ul>
+        </div>
+        
+        <a href="/" class="btn-back">Back to Home</a>
+    </div>
+</body>
+</html> 

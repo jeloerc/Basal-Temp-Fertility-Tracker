@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Basal Temperature Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <!-- ECharts JS -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Fertility Cycle JS -->
+    <script src="{{ url_for('static', filename='js/cycle-phases.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cycle-phase-charts.js') }}"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="py-4 text-center">
+            <h1 class="display-4">Basal Temperature Tracker</h1>
+            <p class="lead">Monitor your menstrual cycle and fertility</p>
+        </header>
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 rounded">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('index') }}">
+                    <i class="fas fa-thermometer-half"></i> BBT Tracker
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('index') }}" aria-current="page">
+                                <i class="fas fa-home"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('history') }}">
+                                <i class="fas fa-history"></i> History
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('cycles') }}">
+                                <i class="fas fa-sync-alt"></i> Cycles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('settings') }}">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="ms-auto d-flex align-items-center">
+                        <span class="badge bg-primary me-2">Day {{ day_counter }}</span>
+                        <form action="{{ url_for('sync_cycle') }}" method="post" class="me-2">
+                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Synchronize cycle data">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </form>
+                        <form action="{{ url_for('fix_cycle_days') }}" method="post" class="me-2">
+                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Fix cycle days">
+                                <i class="fas fa-calendar-check"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h5 mb-0">Record Temperature</h2>
+                    </div>
+                    <div class="card-body">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <form action="{{ url_for('add_temp') }}" method="post">
+                            <div class="mb-3">
+                                <label for="temperature" class="form-label">Basal Temperature for Day {{ day_counter }}</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" class="form-control" id="temperature" name="temperature" required placeholder="Ex. 98.6">
+                                    <span class="input-group-text">°F</span>
+                                </div>
+                                <div class="form-text">Enter your basal temperature measured upon waking.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="date" class="form-label">Date (Optional)</label>
+                                <input type="date" class="form-control" id="date" name="date" value="{{ current_date }}">
+                                <div class="form-text">If left blank, today's date will be used.</div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="is_period" name="is_period" value="true">
+                                <label class="form-check-label" for="is_period">First day of period</label>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="mucus_type" class="form-label">Cervical Mucus</label>
+                                <select class="form-select" id="mucus_type" name="mucus_type">
+                                    <option value="">Select type</option>
+                                    <option value="dry">Dry</option>
+                                    <option value="sticky">Sticky</option>
+                                    <option value="creamy">Creamy</option>
+                                    <option value="egg white">Egg white</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="mood" class="form-label">Cycle Day Number</label>
+                                <select class="form-select" id="mood" name="mood">
+                                    <option value="">Select day number</option>
+                                    {% for day in range(1, 31) %}
+                                    <option value="{{ day }}">Day {{ day }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="comment" class="form-label">Notes</label>
+                                <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="Add any additional notes here..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Record</button>
+                        </form>
+                        
+                        <hr>
+                        
+                        <!-- Button hidden by user request -->
+                        <form action="{{ url_for('reset_cycle') }}" method="post" class="mt-3" style="display:none">
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-outline-danger">Start New Cycle</button>
+                            </div>
+                            <div class="form-text text-center">Press this button at the start of your menstrual period</div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h2 class="h5 mb-0">Cycle Analysis</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h3 class="h6">Average Basal Temperature:</h3>
+                            <p class="display-6 text-center">{{ "%.2f"|format(analysis.average_temp) }}°F</p>
+                        </div>
+                        
+                        {% if current_cycle_data %}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <h3 class="h6">Current Cycle Data:</h3>
+                                    <div class="list-group">
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Cycle Day:</span>
+                                            <span class="badge bg-primary rounded-pill">{{ day_counter }}</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Follicular Avg:</span>
+                                            <span class="badge bg-info rounded-pill">97.50°F</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Luteal Avg:</span>
+                                            <span class="badge bg-success rounded-pill">98.10°F</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Temp Shift:</span>
+                                            <span class="badge bg-warning rounded-pill">0.60°F</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <p class="text-center text-muted">To see a detailed analysis of your cycle, visit the <a href="{{ url_for('history') }}">History</a> or <a href="{{ url_for('cycles') }}">Cycles</a> section.</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">Current Cycle Chart</h2>
+                        <span class="badge bg-light text-dark">
+                            Day {{ day_counter }}
+                        </span>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if current_cycle_data %}
+                            <div id="current-cycle-chart" style="width: 100%; height: 400px;"></div>
+                        {% else %}
+                            <p class="text-muted">No data available for the current cycle</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">Historical Temperature Chart</h2>
+                        <div class="d-flex align-items-center">
+                            <div class="input-group input-group-sm me-2" style="max-width: 350px;">
+                                <label class="input-group-text" for="cycle-selector">Cycle</label>
+                                <select class="form-select form-select-sm" id="cycle-selector">
+                                    <option value="current">Current Cycle</option>
+                                    <option value="all">All Cycles Combined</option>
+                                    {% if cycle_records %}
+                                        <optgroup label="Previous Cycles">
+                                        {% for record in cycle_records %}
+                                            <option value="{{ record.id }}">
+                                                {{ record.start_date }} to {{ record.end_date }} ({{ record.duration }} days)
+                                            </option>
+                                        {% endfor %}
+                                        </optgroup>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if chart_data %}
+                            <div id="temperature-chart" style="width: 100%; height: 400px;"></div>
+                        {% else %}
+                            <p class="text-muted">Not enough data to display chart</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">Follicular Phase</h2>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if current_cycle_data %}
+                            <div id="follicular-phase-chart" style="width: 100%; height: 300px;"></div>
+                        {% else %}
+                            <p class="text-muted">No data available for the follicular phase</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">Luteal Phase</h2>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if current_cycle_data %}
+                            <div id="luteal-phase-chart" style="width: 100%; height: 300px;"></div>
+                        {% else %}
+                            <p class="text-muted">No data available for the luteal phase</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="py-3 text-center text-muted">
+            <div class="container">
+                <p>© 2025 Basal Temperature Tracker</p>
+                <p class="small">This application is for informational purposes at JJhome</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    {% if chart_data %}
+    <script>
+        // Initialize chart data for the cycle chart
+        window.initialChartData = {{ chart_data|safe }};
+    </script>
+    <script src="{{ url_for('static', filename='js/cycle-chart.js') }}"></script>
+    {% endif %}
+
+    {% if current_cycle_data %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicialización de currentCycleData para todas las gráficas
+            var currentCycleData = {{ current_cycle_data|safe }};
+            console.log("Current cycle data:", currentCycleData);
+            
+            // Initialize Current Cycle Chart
+            initCurrentCycleChart(currentCycleData);
+            
+            // Inicializar gráficas de las fases del ciclo
+            initPhasesCharts(currentCycleData);
+        });
+    </script>
+    {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Configuration for iOS devices
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            
+            if (isIOS) {
+                // Adjust element heights to avoid issues with iOS navigation bar
+                document.body.classList.add('ios-device');
+                
+                // Prevent unwanted zoom on form fields
+                document.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.style.fontSize = '16px';
+                });
+                
+                // Improve scrolling in tables
+                document.querySelectorAll('.table-responsive').forEach(table => {
+                    table.style.WebkitOverflowScrolling = 'touch';
+                });
+                
+                // Ensure chart cards are always expanded
+                document.querySelectorAll('.card-body').forEach(cardBody => {
+                    cardBody.style.maxHeight = 'none';
+                    cardBody.style.overflow = 'visible';
+                });
+                
+                // Adjust chart heights for better visualization
+                document.querySelectorAll('[id$="-chart"]').forEach(chart => {
+                    chart.style.height = '350px';
+                });
+            }
+            
+            // Make sure charts are responsive
+            window.addEventListener('resize', function() {
+                if (window.echarts) {
+                    document.querySelectorAll('[id$="-chart"]').forEach(chartEl => {
+                        const chart = echarts.getInstanceByDom(chartEl);
+                        if (chart) {
+                            chart.resize();
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+
+    <script>
+        // Set today's date as the default value for the date input
+        document.addEventListener('DOMContentLoaded', function() {
+            var today = new Date();
+            var year = today.getFullYear();
+            var month = String(today.getMonth() + 1).padStart(2, '0');
+            var day = String(today.getDate()).padStart(2, '0');
+            
+            var dateInput = document.getElementById('date');
+            if (dateInput) {
+                dateInput.value = year + '-' + month + '-' + day;
+            }
+        });
+    </script>
+
+    <script>
+    // Function to initialize the current cycle chart
+    function initCurrentCycleChart(cycleData) {
+        if (!cycleData || !cycleData.days || !cycleData.temperatures || cycleData.days.length === 0) {
+            console.error("Not enough data for current cycle chart");
+            document.getElementById('current-cycle-chart').innerHTML = '<div class="alert alert-info">Not enough data to display current cycle chart</div>';
+            return;
+        }
+
+        try {
+            console.log("Initializing current cycle chart with data:", cycleData);
+            
+            // Convert temperatures to numbers
+            var temperatures = cycleData.temperatures.map(temp => parseFloat(temp));
+            
+            // Calculate minimum and maximum for Y axis
+            var minTemp = Math.min.apply(null, temperatures) - 0.3;
+            var maxTemp = Math.max.apply(null, temperatures) + 0.3;
+            minTemp = Math.floor(minTemp * 10) / 10; // Round to 1 decimal
+            maxTemp = Math.ceil(maxTemp * 10) / 10;
+            
+            // Create current cycle chart options
+            var currentCycleOptions = {
+                title: {
+                    text: 'Current Cycle',
+                    subtext: 'Day ' + (cycleData.currentDay || '?') + ' of cycle',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        let tipContent = 'Day ' + params[0].value[0] + '<br>';
+                        
+                        // If we have dates, show them
+                        if (cycleData.dates && cycleData.dates[params[0].dataIndex]) {
+                            tipContent += 'Date: ' + cycleData.dates[params[0].dataIndex] + '<br>';
+                        }
+                        
+                        tipContent += 'Temperature: ' + parseFloat(params[0].value[1]).toFixed(2) + '°F<br>';
+                        
+                        // Show if it's a fertile day
+                        if (cycleData.fertileDays && cycleData.fertileDays.includes(params[0].value[0])) {
+                            tipContent += '<span style="color:#ff9800; font-weight:bold;">⚠️ Fertile day</span><br>';
+                        }
+                        
+                        // Show if it's a menstruation day
+                        if (cycleData.isPeriod && cycleData.isPeriod[params[0].dataIndex]) {
+                            tipContent += '<span style="color:#e91e63; font-weight:bold;">🔴 Menstruation</span><br>';
+                        }
+                        
+                        return tipContent;
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: { title: 'Save' },
+                        restore: { title: 'Restore' },
+                        dataZoom: { title: 'Zoom' }
+                    }
+                },
+                xAxis: {
+                    type: 'value',
+                    name: 'Cycle Day',
+                    min: 1,
+                    max: function(value) {
+                        // Set maximum to current cycle day or max data + 3
+                        return Math.max(value.max, cycleData.currentDay || 30, 30);
+                    },
+                    axisLabel: {
+                        formatter: '{value}'
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Temperature (°F)',
+                    min: minTemp,
+                    max: maxTemp,
+                    axisLabel: {
+                        formatter: '{value}°F'
+                    }
+                },
+                series: [
+                    {
+                        name: 'Temperature',
+                        type: 'line',
+                        data: cycleData.days.map(function(day, index) {
+                            return [day, parseFloat(cycleData.temperatures[index])];
+                        }),
+                        showSymbol: true,
+                        symbolSize: 10,
+                        lineStyle: {
+                            width: 2,
+                            shadowColor: 'rgba(0, 0, 0, 0.3)',
+                            shadowBlur: 10,
+                            shadowOffsetY: 8
+                        },
+                        itemStyle: {
+                            color: function(params) {
+                                if (cycleData.isPeriod && cycleData.isPeriod[params.dataIndex]) {
+                                    return '#e91e63'; // Pink color for period days
+                                }
+                                return '#7c4dff'; // Purple color for other days
+                            },
+                            borderWidth: 2,
+                            borderColor: '#fff',
+                            shadowColor: 'rgba(0, 0, 0, 0.5)',
+                            shadowBlur: 5
+                        },
+                        markLine: {
+                            silent: true,
+                            lineStyle: {
+                                color: '#e91e63',
+                                type: 'solid',
+                                width: 2
+                            },
+                            data: []
+                        },
+                        markArea: {
+                            itemStyle: {
+                                color: 'rgba(233, 30, 99, 0.25)'
+                            },
+                            data: getFertileWindowForChart(cycleData)
+                        }
+                    }
+                ]
+            };
+            
+            // If we have cycle start date, update subtitle
+            if (cycleData.days.includes(1) && cycleData.dates) {
+                let dayOneIndex = cycleData.days.indexOf(1);
+                if (dayOneIndex >= 0 && cycleData.dates[dayOneIndex]) {
+                    let cycleStartDate = cycleData.dates[dayOneIndex];
+                    currentCycleOptions.title.subtext = 'Day ' + (cycleData.currentDay || '?') + ' (Start: ' + cycleStartDate + ')';
+                }
+            }
+            
+            // Initialize and display chart
+            var currentCycleChart = echarts.init(document.getElementById('current-cycle-chart'));
+            if (currentCycleChart) {
+                currentCycleChart.setOption(currentCycleOptions);
+                
+                // Respond to size changes
+                window.addEventListener('resize', function() {
+                    currentCycleChart.resize();
+                });
+            } else {
+                console.error("Could not initialize current cycle chart");
+            }
+        } catch (error) {
+            console.error("Error initializing current cycle chart:", error);
+            document.getElementById('current-cycle-chart').innerHTML = 
+                '<div class="alert alert-danger">Error loading chart: ' + error.message + '</div>';
+        }
+    }
+
+    // Function to get the fertile window for the chart
+    function getFertileWindowForChart(data) {
+        // If not enough data, use old method or return empty
+        if (!data.temperatures || data.temperatures.length < 7) {
+            // If there are predefined fertile days, use them
+            if (data.fertileDays && data.fertileDays.length > 0) {
+                return calculateFertileWindowFromDays(data.fertileDays);
+            }
+            return [];
+        }
+        
+        // Calculate fertile phase based on temperatures
+        return calculateFertileWindowFromTemperatures(data);
+    }
+    
+    // Helper function to calculate fertile window from predefined days
+    function calculateFertileWindowFromDays(fertileDays) {
+        // Sort fertile days
+        let sortedDays = [...fertileDays].sort((a, b) => a - b);
+        
+        // If only one fertile day, create small area around that day
+        if (sortedDays.length === 1) {
+            return [
+                [
+                    {xAxis: sortedDays[0] - 0.5},
+                    {xAxis: sortedDays[0] + 0.5}
+                ]
+            ];
+        }
+        
+        // For multiple fertile days, group consecutive days into areas
+        let result = [];
+        let start = sortedDays[0];
+        let end = start;
+        
+        for (let i = 1; i < sortedDays.length; i++) {
+            // If current day is consecutive to previous
+            if (sortedDays[i] === end + 1) {
+                end = sortedDays[i];
+            } else {
+                // If there's a gap, save current area and start a new one
+                result.push([
+                    {xAxis: start - 0.5},
+                    {xAxis: end + 0.5}
+                ]);
+                start = sortedDays[i];
+                end = start;
+            }
+        }
+        
+        // Add the last area
+        result.push([
+            {xAxis: start - 0.5},
+            {xAxis: end + 0.5}
+        ]);
+        
+        return result;
+    }
+    
+    // Function to calculate fertile window based on temperatures
+    function calculateFertileWindowFromTemperatures(data) {
+        let temperatures = data.temperatures;
+        let days = data.days;
+        
+        // Cannot process if not enough data
+        if (!temperatures || !days || temperatures.length < 7 || days.length < 7) {
+            return [];
+        }
+        
+        // Find possible ovulation day (significant temperature change)
+        let ovulationDay = detectOvulationDay(data);
+        
+        // If ovulation not detected, use alternative method
+        if (ovulationDay === null) {
+            // Method based on cycle days if we know typical duration
+            return calculateFertileWindowByDefault(data);
+        }
+        
+        // Determine current cycle phase to adjust fertile window size
+        let currentDay = data.currentDay;
+        let dayIndex = days.indexOf(currentDay);
+        let isInFollicularPhase = dayIndex !== -1 && days[dayIndex] < ovulationDay;
+        
+        let fertileStart, fertileEnd;
+        
+        // If we're in follicular phase, extend window backwards and forwards
+        if (isInFollicularPhase) {
+            // Before ovulation: 6 days before and up to 1 day after
+            fertileStart = Math.max(1, ovulationDay - 6);
+            fertileEnd = Math.min(ovulationDay + 1, days[days.length - 1]);
+        } else {
+            // After ovulation or if we don't know the phase: 5 days before and ovulation day
+            fertileStart = Math.max(1, ovulationDay - 5);
+            fertileEnd = ovulationDay;
+        }
+        
+        // Check if we're in a cycle where the fertile window has passed
+        let lastDayInData = days[days.length - 1];
+        if (currentDay > ovulationDay + 1 && lastDayInData > ovulationDay + 1) {
+            // Mark fertile window with different style (historical)
+            return [
+                [
+                    {
+                        xAxis: fertileStart - 0.5,
+                        itemStyle: {
+                            color: 'rgba(233, 30, 99, 0.15)' // More transparent because it passed
+                        }
+                    },
+                    {
+                        xAxis: fertileEnd + 0.5,
+                        itemStyle: {
+                            color: 'rgba(233, 30, 99, 0.15)'
+                        }
+                    }
+                ]
+            ];
+        }
+        
+        // If fertile window includes current day, highlight it more
+        if (currentDay >= fertileStart && currentDay <= fertileEnd) {
+            return [
+                [
+                    {
+                        xAxis: fertileStart - 0.5,
+                        itemStyle: {
+                            color: 'rgba(255, 152, 0, 0.35)' // Brighter orange to indicate current fertile day
+                        }
+                    },
+                    {
+                        xAxis: fertileEnd + 0.5,
+                        itemStyle: {
+                            color: 'rgba(255, 152, 0, 0.35)'
+                        }
+                    }
+                ]
+            ];
+        }
+        
+        // Standard fertile window
+        return [
+            [
+                {
+                    xAxis: fertileStart - 0.5,
+                    itemStyle: {
+                        color: 'rgba(233, 30, 99, 0.25)' // Standard pink
+                    }
+                },
+                {
+                    xAxis: fertileEnd + 0.5,
+                    itemStyle: {
+                        color: 'rgba(233, 30, 99, 0.25)'
+                    }
+                }
+            ]
+        ];
+    }
+    
+    // Function to calculate default fertile window (based on cycle averages)
+    function calculateFertileWindowByDefault(data) {
+        let days = data.days;
+        
+        // Cannot process if not enough data
+        if (!days || days.length < 1) {
+            return [];
+        }
+        
+        let lastDay = days[days.length - 1];
+        let cycleLength = data.cycleLength || 28; // Average cycle if no data
+        
+        // In a 28-day cycle, ovulation typically occurs around day 14
+        // Adjust proportionally for cycles of different length
+        let estimatedOvulationDay = Math.round(cycleLength / 2);
+        
+        // Calculate fertile window: 5 days before ovulation and 1 day after
+        let fertileStart = Math.max(1, estimatedOvulationDay - 5);
+        let fertileEnd = Math.min(estimatedOvulationDay + 1, lastDay);
+        
+        // If we're in the last days of the cycle, the window may have passed
+        if (days[0] > fertileEnd) {
+            return [];
+        }
+        
+        // Limit the window to the days available in the data
+        fertileStart = Math.max(fertileStart, days[0]);
+        fertileEnd = Math.min(fertileEnd, lastDay);
+        
+        // Create the fertile window zone
+        return [
+            [
+                {xAxis: fertileStart - 0.5},
+                {xAxis: fertileEnd + 0.5}
+            ]
+        ];
+    }
+    </script>
+</body>
+</html> 

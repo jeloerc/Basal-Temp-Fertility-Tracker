@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cycle History - Basal Temperature Tracking</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #0275d8;
+            font-size: 2rem;
+        }
+        .stat-unit {
+            font-size: 0.8rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="py-4 text-center">
+            <h1 class="display-4">Basal Temperature Tracker</h1>
+            <p class="lead">Monitor your menstrual cycle and fertility</p>
+        </header>
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 rounded">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('index') }}">
+                    <i class="fas fa-thermometer-half"></i> BBT Tracker
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}">
+                                <i class="fas fa-home"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('history') }}">
+                                <i class="fas fa-history"></i> History
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('cycles') }}" aria-current="page">
+                                <i class="fas fa-sync-alt"></i> Cycles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('settings') }}">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h5 mb-0">Cycle History</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Duration (days)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if cycle_records %}
+                                        {% for cycle in cycle_records %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ cycle.start_date }}</td>
+                                                <td>{{ cycle.end_date }}</td>
+                                                <td>{{ cycle.duration }} days</td>
+                                                <td>
+                                                    {% if cycle.duration < 21 %}
+                                                        <span class="badge bg-warning">Short</span>
+                                                    {% elif cycle.duration > 35 %}
+                                                        <span class="badge bg-warning">Long</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">Normal</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center">No cycle history recorded yet</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {% if cycle_records %}
+                            <div class="mt-4">
+                                <h3 class="h6">Average Cycle Length:</h3>
+                                <p class="lead text-center">{{ "%.1f"|format(avg_cycle_length) }} days</p>
+                                
+                                <div class="progress mt-3">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ (day_counter / avg_cycle_length) * 100 }}%;" 
+                                        aria-valuenow="{{ day_counter }}" aria-valuemin="0" aria-valuemax="{{ avg_cycle_length }}">
+                                        Day {{ day_counter }} of ~{{ avg_cycle_length|int }} days
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Cycle Analysis Section -->
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">Advanced Cycle Analysis</h2>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-chart-line me-1"></i> Detailed Analysis
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div id="cycle-analysis-container" class="cycle-analysis-container">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading cycle analysis...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <h4 class="h6"><i class="fas fa-info-circle me-2"></i>Understanding your cycle</h4>
+                            <p class="small mb-0">This analysis helps you identify patterns in your cycle, temperature shifts that may indicate ovulation, and your fertile window. Temperature patterns are key indicators of your reproductive health.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="py-3 text-center text-muted">
+            <div class="container">
+                <p>© 2025 Basal Temperature Tracker</p>
+                <p class="small">This application is for informational purposes at JJhome</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Implementación directa sin necesidad de D3.js -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartContainer = document.getElementById('cycle-analysis-container');
+            if (!chartContainer) return;
+            
+            // Cargar datos de la API
+            fetch('/api/cycle_analytics')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || !data.cycles || data.cycles.length === 0) {
+                        chartContainer.innerHTML = 
+                            '<div class="alert alert-info">Not enough data to display cycle analysis.</div>';
+                        return;
+                    }
+                    
+                    // Generar visualización HTML básica sin dependencia de D3
+                    let html = '<div class="cycle-analysis-wrapper">';
+                    
+                    // Sección de estadísticas
+                    html += `
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h3 class="h5 mb-0">Cycle Statistics</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <div class="stat-item">
+                                            <span class="stat-label">Average Duration</span>
+                                            <span class="stat-value">${data.average_cycle_length.toFixed(1)}</span>
+                                            <span class="stat-unit">days</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-item">
+                                            <span class="stat-label">Follicular Phase</span>
+                                            <span class="stat-value">${data.average_follicular_length.toFixed(1)}</span>
+                                            <span class="stat-unit">days</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-item">
+                                            <span class="stat-label">Luteal Phase</span>
+                                            <span class="stat-value">${data.average_luteal_length.toFixed(1)}</span>
+                                            <span class="stat-unit">days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Tabla de datos de ciclos
+                    html += `
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h3 class="h5 mb-0">Detailed Analysis</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Cycle</th>
+                                                <th>Inicio</th>
+                                                <th>Fin</th>
+                                                <th>Duration</th>
+                                                <th>Average Temperature</th>
+                                                <th>Temperature Shift</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                    `;
+                    
+                    // Add rows for each cycle
+                    data.cycles.forEach((cycle, index) => {
+                        const tempShiftClass = cycle.temperature_shift > 0.3 ? 'text-success' : 
+                                           (cycle.temperature_shift < 0.1 ? 'text-danger' : 'text-warning');
+                        
+                        html += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${cycle.start_date}</td>
+                                <td>${cycle.end_date}</td>
+                                <td>${cycle.duration} days</td>
+                                <td>${cycle.average_temp}°F</td>
+                                <td class="${tempShiftClass}">
+                                    ${cycle.temperature_shift > 0 ? '+' : ''}${cycle.temperature_shift.toFixed(2)}°F
+                                    ${cycle.temperature_shift > 0.3 ? 
+                                        '<i class="fas fa-check-circle text-success ms-1" title="Significant shift, possible ovulation"></i>' : ''}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Información interpretativa
+                    html += `
+                        <div class="card mt-4">
+                            <div class="card-header bg-light">
+                                <h3 class="h5 mb-0">Interpretation</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>A basal temperature shift of at least 0.2°F usually indicates that ovulation has occurred. 
+                                   Temperature tends to be lower during the follicular phase and higher during the luteal phase.</p>
+                                   
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-circle text-primary me-2"></i>Follicular Phase</h6>
+                                        <p class="small">The first half of the cycle, before ovulation. Temperatures are usually lower.</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-circle text-danger me-2"></i>Luteal Phase</h6>
+                                        <p class="small">The second half of the cycle, after ovulation. Temperatures are usually higher.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    html += '</div>';
+                    chartContainer.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error al cargar datos:', error);
+                    chartContainer.innerHTML = 
+                        '<div class="alert alert-danger">Error al cargar los datos. Intente nuevamente más tarde.</div>';
+                });
+        });
+    </script>
+    
+    <!-- iOS Specific Adjustments -->
+    <script>
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        }
+        
+        if (isIOS()) {
+            document.body.classList.add('ios-device');
+            
+            const tables = document.querySelectorAll('.table-responsive');
+            tables.forEach(table => {
+                table.style.WebkitOverflowScrolling = 'touch';
+            });
+            
+            const badges = document.querySelectorAll('.badge');
+            badges.forEach(badge => {
+                badge.style.padding = '6px 10px';
+            });
+            
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.height = '24px';
+                progressBar.style.fontSize = '14px';
+                progressBar.style.lineHeight = '24px';
+            }
+        }
+    </script>
+</body>
+</html> 

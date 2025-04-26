@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basal Temperature Tracker - React Native App</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #7c4dff;
+        }
+        .app-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .qr-section {
+            flex: 1;
+            min-width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .instructions {
+            flex: 2;
+            min-width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+        }
+        .step {
+            margin-bottom: 15px;
+        }
+        .step-number {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            background-color: #7c4dff;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 25px;
+            margin-right: 10px;
+        }
+        .features {
+            margin-top: 40px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .feature-card {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .feature-title {
+            color: #7c4dff;
+            font-weight: bold;
+            margin-top: 0;
+        }
+        .phone-mockup {
+            max-width: 200px;
+            border-radius: 15px;
+            border: 8px solid #333;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Basal Temperature Tracker</h1>
+        <p>React Native Mobile Application</p>
+    </header>
+
+    <div class="app-container">
+        <div class="qr-section">
+            <h2>Scan to Download</h2>
+            <p>Use your phone's camera to scan this QR code to install the app</p>
+            
+            <div class="qr-placeholder">
+                <p>QR Code will be generated when you build the app with Expo</p>
+            </div>
+            
+            <p><small>You'll need the Expo Go app installed</small></p>
+        </div>
+        
+        <div class="instructions">
+            <h2>Getting Started</h2>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Make sure your server is running</strong>
+                <p>The app connects to your existing Basal Temperature Tracker backend at <code>http://your-server-ip:5000</code></p>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>Install Expo Go on your phone</strong>
+                <p>Available for free on both iOS App Store and Google Play Store</p>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>Scan the QR code</strong>
+                <p>Using your device's camera or the Expo Go app</p>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">4</span>
+                <strong>Update server address</strong>
+                <p>On first launch, enter your server's IP address when prompted</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="features">
+        <h2>App Features</h2>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3 class="feature-title">Advanced Visualization</h3>
+                <p>Interactive charts with different colors for follicular and luteal phases. Mark period days with special indicators.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3 class="feature-title">Cycle Analysis</h3>
+                <p>Statistical analysis of your cycle patterns, including average cycle length and temperature shifts.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3 class="feature-title">Fertility Tracking</h3>
+                <p>Clear visual indicators for likely fertile days based on your temperature patterns.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3 class="feature-title">Historical Data</h3>
+                <p>Browse through past cycles to identify patterns and track changes over time.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3 class="feature-title">Temperature Conversion</h3>
+                <p>Easily switch between Fahrenheit and Celsius temperature units.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3 class="feature-title">Detail On Demand</h3>
+                <p>Tap any data point to see exact temperature readings and additional notes.</p>
+            </div>
+        </div>
+    </div>
+    
+    <footer style="text-align: center; margin-top: 50px;">
+        <p><small>© 2025 Basal Temperature Tracker</small></p>
+        <p><small>This application is for informational purposes at JJhome</small></p>
+    </footer>
+</body>
+</html> 

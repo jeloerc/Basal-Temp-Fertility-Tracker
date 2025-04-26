@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature History - Basal Temperature Tracking</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="py-4 text-center">
+            <h1 class="display-4">Basal Temperature Tracker</h1>
+            <p class="lead">Monitor your menstrual cycle and fertility</p>
+        </header>
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 rounded">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('index') }}">
+                    <i class="fas fa-thermometer-half"></i> BBT Tracker
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}">
+                                <i class="fas fa-home"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('history') }}" aria-current="page">
+                                <i class="fas fa-history"></i> History
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('cycles') }}">
+                                <i class="fas fa-sync-alt"></i> Cycles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('settings') }}">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">Temperature History</h2>
+                        <span class="badge bg-danger" data-bs-toggle="tooltip" data-bs-placement="left" title="Marking any day as period will reset the cycle counter">
+                            <i class="fas fa-info-circle me-1"></i> Mark period = Reset cycle
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i> 
+                                    <strong>Important:</strong> When you mark any day as a period day, the system will:
+                                    <ul class="mb-0 mt-2">
+                                        <li>Close the previous cycle and save it in the history</li>
+                                        <li>Set this day as Day 1 of the new cycle</li>
+                                        <li>Automatically recalculate all following cycle days</li>
+                                    </ul>
+                                </small>
+                                <div class="ms-3 d-flex">
+                                    <form action="{{ url_for('sync_cycle') }}" method="post" class="me-2">
+                                        <button type="submit" class="btn btn-info btn-sm" onclick="return confirm('Are you sure you want to synchronize your cycle data? This will update all cycle days based on your most recent period.')">
+                                            <i class="fas fa-sync me-1"></i> Sync Cycle Data
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('fix_data') }}" method="post">
+                                        <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to correct all historical data? This action will recalculate all cycle days based on the marked period days.')">
+                                            <i class="fas fa-tools me-1"></i> Fix Historical Data
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if error_message %}
+                        <div class="alert alert-danger mb-3">
+                            {{ error_message }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Cycle Day</th>
+                                        <th>Temperature</th>
+                                        <th>Status</th>
+                                        <th>Period</th>
+                                        <th>Cervical Mucus</th>
+                                        <th>Mood</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if temp_history and temp_history|length > 0 %}
+                                        {% for entry in temp_history %}
+                                            <tr class="{% if entry.is_period %}period-day{% endif %}" id="row-{{ entry.date }}" data-row-id="{{ loop.index }}">
+                                                <td>{{ entry.date }}</td>
+                                                <td>
+                                                    <span class="badge {% if entry.day == 1 or entry.cycle_day == 1 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                        Day {{ entry.day if entry.day is defined else entry.cycle_day }}
+                                                    </span>
+                                                    <div class="edit-cycle-day" style="display:none;">
+                                                        <input type="number" min="1" class="form-control form-control-sm cycle-day-input" value="{{ entry.day if entry.day is defined else entry.cycle_day }}">
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="temp-value">{{ "%.2f"|format(entry.temperature) }}°F</span>
+                                                    <div class="edit-temp" style="display:none;">
+                                                        <input type="number" step="0.01" class="form-control form-control-sm temp-input" value="{{ "%.2f"|format(entry.temperature) }}">
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {% if entry.temperature >= 98.6 %}
+                                                        <span class="badge bg-success">Fertile</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Non-Fertile</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <form action="{{ url_for('mark_period', day=entry.day) }}" method="post" class="d-inline">
+                                                        <input type="hidden" name="is_period" value="{{ 'false' if entry.is_period else 'true' }}">
+                                                        <button type="submit" class="btn btn-sm {% if entry.is_period %}btn-danger{% else %}btn-outline-danger{% endif %}" 
+                                                            title="{{ 'Remove period mark' if entry.is_period else 'Mark as period day (will reset the cycle)' }}">
+                                                            <i class="fas {% if entry.is_period %}fa-check{% else %}fa-sync-alt{% endif %}"></i>
+                                                            {% if entry.is_period %}Period day{% else %}Start cycle{% endif %}
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                                <td>
+                                                    <span class="mucus-value">{{ entry.mucus_type or 'Not recorded' }}</span>
+                                                    <div class="edit-mucus" style="display:none;">
+                                                        <select class="form-select form-select-sm mucus-input">
+                                                            <option value="">Select type</option>
+                                                            <option value="dry" {% if entry.mucus_type == 'dry' %}selected{% endif %}>Dry</option>
+                                                            <option value="sticky" {% if entry.mucus_type == 'sticky' %}selected{% endif %}>Sticky</option>
+                                                            <option value="creamy" {% if entry.mucus_type == 'creamy' %}selected{% endif %}>Creamy</option>
+                                                            <option value="egg white" {% if entry.mucus_type == 'egg white' %}selected{% endif %}>Egg white</option>
+                                                        </select>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="mood-value">{{ entry.mood or 'Not recorded' }}</span>
+                                                    <div class="edit-mood" style="display:none;">
+                                                        <select class="form-select form-select-sm mood-input">
+                                                            <option value="">Select mood</option>
+                                                            <option value="happy" {% if entry.mood == 'happy' %}selected{% endif %}>Happy</option>
+                                                            <option value="neutral" {% if entry.mood == 'neutral' %}selected{% endif %}>Neutral</option>
+                                                            <option value="sad" {% if entry.mood == 'sad' %}selected{% endif %}>Sad</option>
+                                                            <option value="irritable" {% if entry.mood == 'irritable' %}selected{% endif %}>Irritable</option>
+                                                        </select>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="comment-value">{{ entry.comment or '' }}</span>
+                                                    <div class="edit-comment" style="display:none;">
+                                                        <input type="text" class="form-control form-control-sm comment-input" placeholder="Comment" value="{{ entry.comment or '' }}">
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button class="btn btn-sm btn-outline-primary edit-btn" data-date="{{ entry.date }}">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-success save-btn" style="display:none;" data-date="{{ entry.date }}">
+                                                            <i class="fas fa-save"></i> Save
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger cancel-btn" style="display:none;" data-date="{{ entry.date }}">
+                                                            <i class="fas fa-times"></i> Cancel
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger delete-btn" data-date="{{ entry.date }}">
+                                                            <i class="fas fa-trash-alt"></i> Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">No data recorded</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="py-3 text-center text-muted">
+            <div class="container">
+                <p>© 2025 Basal Temperature Tracker</p>
+                <p class="small">This application is for informational purposes at JJhome</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Basic form approach - simpler and more reliable
+        function editRecord(date) {
+            console.log('Editing record:', date);
+            const row = document.getElementById('row-' + date);
+            
+            // Hide display elements
+            row.querySelector('.temp-value').style.display = 'none';
+            row.querySelector('.mucus-value').style.display = 'none';
+            row.querySelector('.mood-value').style.display = 'none';
+            row.querySelector('.comment-value').style.display = 'none';
+            
+            // Show edit elements
+            row.querySelector('.edit-temp').style.display = 'block';
+            row.querySelector('.edit-mucus').style.display = 'block';
+            row.querySelector('.edit-mood').style.display = 'block';
+            row.querySelector('.edit-comment').style.display = 'block';
+            row.querySelector('.edit-cycle-day').style.display = 'block';
+            
+            // Toggle buttons
+            row.querySelector('.edit-btn').style.display = 'none';
+            row.querySelector('.save-btn').style.display = 'inline';
+            row.querySelector('.cancel-btn').style.display = 'inline';
+            row.querySelector('.delete-btn').style.display = 'none';
+        }
+        
+        function cancelEdit(date) {
+            console.log('Canceling edit:', date);
+            const row = document.getElementById('row-' + date);
+            
+            // Show display elements
+            row.querySelector('.temp-value').style.display = 'inline';
+            row.querySelector('.mucus-value').style.display = 'inline';
+            row.querySelector('.mood-value').style.display = 'inline';
+            row.querySelector('.comment-value').style.display = 'inline';
+            
+            // Hide edit elements
+            row.querySelector('.edit-temp').style.display = 'none';
+            row.querySelector('.edit-mucus').style.display = 'none';
+            row.querySelector('.edit-mood').style.display = 'none';
+            row.querySelector('.edit-comment').style.display = 'none';
+            row.querySelector('.edit-cycle-day').style.display = 'none';
+            
+            // Toggle buttons
+            row.querySelector('.edit-btn').style.display = 'inline';
+            row.querySelector('.save-btn').style.display = 'none';
+            row.querySelector('.cancel-btn').style.display = 'none';
+            row.querySelector('.delete-btn').style.display = 'inline';
+        }
+        
+        function saveRecord(date) {
+            console.log('Saving record:', date);
+            const row = document.getElementById('row-' + date);
+            const saveBtn = row.querySelector('.save-btn');
+            
+            // Disable save button and show saving indicator
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            // Get values from form inputs
+            const temperature = row.querySelector('.temp-input').value;
+            const cycle_day = row.querySelector('.cycle-day-input').value;
+            const mucus_type = row.querySelector('.mucus-input').value;
+            const mood = row.querySelector('.mood-input').value;
+            const comment = row.querySelector('.comment-input').value;
+            
+            // Send data to server
+            fetch('/update_record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: date,
+                    temperature: temperature,
+                    cycle_day: cycle_day,
+                    mucus_type: mucus_type,
+                    mood: mood,
+                    comment: comment
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to reflect updated data
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating record. Please try again.');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+            });
+        }
+        
+        function deleteRecord(date) {
+            if (!confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
+                return;
+            }
+            
+            console.log('Deleting record:', date);
+            const row = document.getElementById('row-' + date);
+            const deleteBtn = row.querySelector('.delete-btn');
+            
+            // Disable delete button and show loading indicator
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            // Send delete request
+            fetch('/delete_record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: date })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to reflect deleted data
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting record. Please try again.');
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete';
+            });
+        }
+        
+        // Initialize tooltips when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Set initial display styles for edit elements
+            document.querySelectorAll('.edit-temp, .edit-mucus, .edit-mood, .edit-comment, .edit-cycle-day').forEach(function(el) {
+                el.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.save-btn, .cancel-btn').forEach(function(el) {
+                el.style.display = 'none';
+            });
+            
+            // Add event listeners to all buttons
+            document.querySelectorAll('.edit-btn').forEach(function(btn) {
+                const date = btn.getAttribute('data-date');
+                btn.onclick = function() { editRecord(date); };
+            });
+            
+            document.querySelectorAll('.save-btn').forEach(function(btn) {
+                const date = btn.getAttribute('data-date');
+                btn.onclick = function() { saveRecord(date); };
+            });
+            
+            document.querySelectorAll('.cancel-btn').forEach(function(btn) {
+                const date = btn.getAttribute('data-date');
+                btn.onclick = function() { cancelEdit(date); };
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(function(btn) {
+                const date = btn.getAttribute('data-date');
+                btn.onclick = function() { deleteRecord(date); };
+            });
+        });
+    </script>
+</body>
+</html> 

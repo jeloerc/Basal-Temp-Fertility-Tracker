@@ -1,0 +1,482 @@
+/* Custom styles for the Basal Temperature Application */
+
+:root {
+  --primary-color: #7c4dff;
+  --primary-dark: #5e35b1;
+  --secondary-color: #ff4081;
+  --success-color: #4caf50;
+  --info-color: #2196f3;
+  --warning-color: #ff9800;
+  --danger-color: #f44336;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  --period-color: #ffebee;
+}
+
+body {
+  background-color: #f8f9fa;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header styles */
+header {
+  margin-bottom: 2rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  padding: 2rem !important;
+}
+
+header h1 {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+header .lead {
+  color: #666;
+}
+
+/* Cards */
+.card {
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card-header {
+  border-radius: 10px 10px 0 0 !important;
+  font-weight: bold;
+}
+
+.card-header.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.card-header.bg-info {
+  background-color: var(--info-color) !important;
+}
+
+.card-header.bg-success {
+  background-color: var(--success-color) !important;
+}
+
+.card-header.bg-secondary {
+  background-color: var(--dark-color) !important;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 5px;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.btn-outline-danger {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+/* Chart and tables */
+#temperature-chart {
+  min-height: 300px;
+  margin: 0 auto;
+  transition: height 0.3s ease;
+}
+
+.table {
+  background-color: white;
+  margin-bottom: 0;
+}
+
+.badge {
+  font-weight: 500;
+}
+
+/* Styles for period days */
+.period-day {
+  background-color: rgba(255, 192, 203, 0.2) !important;
+}
+
+.period-day td {
+  border-color: #f8bbd0;
+}
+
+/* Style for period buttons */
+.btn-sm .fas {
+  font-size: 0.75rem;
+}
+
+/* Footer */
+footer {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 -0.125rem 0.25rem rgba(0, 0, 0, 0.05);
+  margin-top: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .card {
+    margin-bottom: 15px;
+  }
+  
+  .table-responsive {
+    border: none;
+  }
+  
+  .btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+  
+  h1.display-4 {
+    font-size: 2.5rem;
+  }
+  
+  .lead {
+    font-size: 1.1rem;
+  }
+  
+  .table th, .table td {
+    padding: 0.5rem;
+  }
+  
+  #temperature-chart {
+    min-height: 300px;
+  }
+}
+
+/* iPhone-specific optimizations */
+@media screen and (max-width: 428px) { /* iPhone 13 Pro Max width */
+  .container {
+    padding: 8px;
+  }
+  
+  /* Navbar optimizations */
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+  
+  .navbar-toggler {
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .nav-link {
+    padding: 0.3rem 0.5rem;
+  }
+  
+  /* Card optimizations */
+  .card-header {
+    padding: 0.75rem;
+  }
+  
+  .card-body {
+    padding: 0.75rem;
+  }
+  
+  /* Form optimizations */
+  .form-control {
+    font-size: 16px; /* Prevents zoom on input focus in iOS */
+  }
+  
+  /* Table optimizations for small screens */
+  .table {
+    font-size: 0.85rem;
+  }
+  
+  .table th, .table td {
+    padding: 0.4rem;
+  }
+  
+  /* Button size for better touch targets on mobile */
+  .btn {
+    padding: 8px 12px;
+    margin-bottom: 5px;
+  }
+  
+  /* Charts responsive sizing */
+  .chart-container {
+    height: 300px !important;
+  }
+  
+  /* Action buttons in history table */
+  .btn-group .btn {
+    padding: 4px 8px;
+  }
+  
+  /* Edit form for records */
+  .edit-notes, .edit-temp {
+    width: 100%;
+  }
+  
+  /* Reduced margins for alerts */
+  .alert {
+    padding: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Fix for iOS Safari input styles */
+input[type="number"],
+input[type="text"],
+select.form-select {
+  -webkit-appearance: none;
+  border-radius: 5px;
+}
+
+/* Make inputs larger on touch devices */
+@media (pointer: coarse) {
+  .btn, 
+  .form-control,
+  .form-select {
+    min-height: 44px; /* Apple's recommended minimum touch target size */
+  }
+  
+  /* Fix for iOS Safari focus issues */
+  .form-control:focus,
+  .form-select:focus {
+    font-size: 16px;
+  }
+}
+
+/* Fix for iPhone Safari viewport height issues */
+.vh-100 {
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+
+/* Hide mobile app related elements */
+.nav-item a[href*="react-native-app"],
+.nav-item a[href*="user_guide"] {
+  display: none !important;
+}
+
+/* Tables scrollable on small screens */
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Force font size for inputs to prevent zooming */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.alert {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Styles for the active cycle day */
+.current-day {
+  font-weight: bold;
+  background-color: rgba(124, 77, 255, 0.1);
+}
+
+/* Accessibility improvements */
+input:focus, 
+button:focus {
+  box-shadow: 0 0 0 0.25rem rgba(124, 77, 255, 0.5) !important;
+}
+
+/* Specific styles for ECharts */
+.echarts-tooltip {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid var(--primary-color) !important;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 10px;
+  color: #333;
+}
+
+.echarts-tooltip-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--primary-dark);
+}
+
+/* Loading animation for the chart */
+.chart-loading {
+  position: relative;
+}
+
+.chart-loading::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: 10;
+}
+
+.chart-loading::after {
+  content: "Loading...";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--primary-color);
+  font-weight: bold;
+  z-index: 11;
+}
+
+/* Styles for icons in the table */
+.fa-tint {
+  color: var(--info-color);
+}
+
+.fa-smile {
+  color: var(--warning-color);
+}
+
+.fa-comment {
+  color: var(--dark-color);
+}
+
+/* Custom tooltip */
+[title] {
+  position: relative;
+  cursor: help;
+}
+
+/* Style for displaying notes and comments */
+.notes-container {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.note-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.note-icon {
+  margin-right: 8px;
+  width: 16px;
+  text-align: center;
+}
+
+/* Style the list items in the analysis section */
+.list-group-item {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Highlight the current day in the temperature table */
+tr.current-day {
+  background-color: #e3f2fd !important;
+  font-weight: bold;
+}
+
+/* Style for period days */
+tr.period-day {
+  background-color: #ffebee !important;
+}
+
+tr.period-day td:first-child {
+  border-left: 4px solid #e91e63;
+}
+
+/* Add smooth transitions for hover effects */
+.nav-link, .btn {
+  transition: all 0.2s ease-in-out;
+}
+
+/* D3.js Chart Styles */
+.d3-chart-container {
+  width: 100%;
+  height: auto;
+  min-height: 500px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+#d3-tooltip {
+  position: absolute;
+  display: none;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 5px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.d3-chart-container svg {
+  width: 100%;
+  height: auto;
+}
+
+/* D3 SVG elements styling */
+.d3-chart-container text {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 12px;
+}
+
+.d3-chart-container .stats-title {
+  font-size: 14px;
+}
+
+/* Mobile responsiveness for D3 charts */
+@media (max-width: 768px) {
+  .d3-chart-container {
+    min-height: 400px;
+  }
+  
+  .d3-chart-container svg {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 576px) {
+  .d3-chart-container {
+    min-height: 350px;
+  }
+} 
